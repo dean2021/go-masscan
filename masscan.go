@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"github.com/pkg/errors"
 )
 
 type Masscan struct {
@@ -43,8 +44,8 @@ func (m *Masscan) SetExclude(exclude string) {
 // Start scanning
 func (m *Masscan) Run() error {
 	var (
-		cmd  *exec.Cmd
-		outb bytes.Buffer
+		cmd        *exec.Cmd
+		outb, errs bytes.Buffer
 	)
 	if m.Rate != "" {
 		m.Args = append(m.Args, "--rate")
@@ -67,8 +68,12 @@ func (m *Masscan) Run() error {
 	cmd = exec.Command(m.SystemPath, m.Args...)
 	fmt.Println(cmd.Args)
 	cmd.Stdout = &outb
+	cmd.Stderr = &errs
 	err := cmd.Run()
 	if err != nil {
+		if errs.Len() > 0 {
+			return errors.New(errs.String())
+		}
 		return err
 	}
 	m.Result = outb.Bytes()
